@@ -16,6 +16,7 @@ defaults:
   retries: 3
   backoff_seconds: 5          # 5s, 10s, 20s ...
   delay_seconds: [3, 7]
+  retry_blocked_after_seconds: 120   # BLOCKED items get ONE more try at the end of the run (0 = off)
   user_agents:
     - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
     - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"

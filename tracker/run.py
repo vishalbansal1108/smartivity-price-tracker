@@ -18,7 +18,7 @@ import yaml
 
 from . import sheet
 from .adapters import REGISTRY
-from .models import NO_ID, NOT_LISTED, PriceResult, Sku, now_ist
+from .models import BLOCKED, NO_ID, NOT_LISTED, PriceResult, Sku, now_ist
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config" / "platforms.yaml"
@@ -40,11 +40,30 @@ def run_platform(key: str, cfg: dict, defaults: dict, skus: list[Sku]) -> list[P
             continue                      # no ID and this platform can't search by name
         for pin in pincodes:
             r = adapter.run_one(sku, pin)
-            print(f"  [{cfg['name']}] {sku.sku} {pin or ''} -> {r.status} "
-                  f"{r.price if r.price is not None else ''} {r.error[:80]}", flush=True)
+            _log(cfg, r)
             if r.status != NO_ID:
                 results.append(r)
+
+    # Sites often show a robot check to the first few requests of a run and then
+    # relax. Give each BLOCKED item one more try, once, after a pause.
+    blocked = [i for i, r in enumerate(results) if r.status == BLOCKED]
+    wait = float(cfg.get("retry_blocked_after_seconds", defaults.get("retry_blocked_after_seconds", 0)))
+    if blocked and wait > 0:
+        print(f"  [{cfg['name']}] retrying {len(blocked)} blocked item(s) in {wait:.0f}s", flush=True)
+        time.sleep(wait)
+        by_code = {s.sku: s for s in skus}
+        for i in blocked:
+            old = results[i]
+            r = adapter.run_one(by_code[old.sku], old.pincode or None)
+            r.error = (r.error + " (after retry)").strip() if r.status != "OK" else "OK on retry"
+            _log(cfg, r)
+            results[i] = r
     return results
+
+
+def _log(cfg: dict, r: PriceResult):
+    print(f"  [{cfg['name']}] {r.sku} {r.pincode} -> {r.status} "
+          f"{r.price if r.price is not None else ''} {r.error[:80]}", flush=True)
 
 
 def print_table(results: list[PriceResult]):
