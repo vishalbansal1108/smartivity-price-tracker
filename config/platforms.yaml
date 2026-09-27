@@ -1,0 +1,93 @@
+# ---------------------------------------------------------------------------
+# Platform configuration.
+# Websites change their pages often. When a platform starts failing, the fix is
+# usually here (a selector or pattern), not in the Python code.
+#
+#   id_column      : column header in the "SKUs" tab that holds this platform's ID
+#   enabled        : set to false to switch a platform off without deleting it
+#   delay_seconds  : random pause between two requests to the same site [min, max]
+#   retries        : how many times to retry a failed request (with backoff)
+#   selectors      : CSS selectors, tried in order - first match wins
+#   patterns       : regular expressions run on the raw page, used as fallback
+# ---------------------------------------------------------------------------
+
+defaults:
+  timeout_seconds: 30
+  retries: 3
+  backoff_seconds: 5          # 5s, 10s, 20s ...
+  delay_seconds: [3, 7]
+  user_agents:
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"
+
+# Order here = column order in the "Latest" tab. Amazon.in must stay first:
+# it is the reference price.
+platforms:
+
+  amazon_in:
+    name: "Amazon.in"
+    enabled: true
+    reference: true
+    id_column: "Amazon ASIN(s)"
+    product_url: "https://www.amazon.in/dp/{id}"
+    delay_seconds: [4, 9]
+    blocked_markers:            # text that means Amazon showed a robot check
+      - "/errors/validateCaptcha"
+      - "Type the characters you see in this image"
+      - "api-services-support@amazon.com"
+    not_found_markers:
+      - "Looking for something?"
+      - "Page Not Found"
+    selectors:
+      title:
+        - "#productTitle"
+      price:                    # the buy-box price
+        - "#corePriceDisplay_desktop_feature_div .priceToPay .a-offscreen"
+        - "#corePriceDisplay_desktop_feature_div .apex-pricetopay-value .a-offscreen"
+        - "#corePrice_desktop .a-price.apexPriceToPay .a-offscreen"
+        - "#corePrice_feature_div .a-price .a-offscreen"
+        - "#tp_price_block_total_price_ww .a-offscreen"
+      mrp:
+        - "#corePriceDisplay_desktop_feature_div .basisPrice .a-offscreen"
+        - "#corePriceDisplay_desktop_feature_div .apex-basisprice-value .a-offscreen"
+        - "#corePrice_desktop .a-text-price .a-offscreen"
+      availability:
+        - "#availability"
+        - "#outOfStock"
+      seller:
+        - "#merchantInfoFeature_feature_div .offer-display-feature-text-message"
+        - "#sellerProfileTriggerId"
+        - "#merchant-info"
+      buy_button:
+        - "#add-to-cart-button"
+        - "#buy-now-button"
+    out_of_stock_words:
+      - "currently unavailable"
+      - "out of stock"
+      - "temporarily out of stock"
+    patterns:
+      price: '"priceAmount":\s*([\d.]+)'
+
+  flipkart:
+    name: "Flipkart"
+    enabled: true
+    id_column: "Flipkart FSN/PID"
+    product_url: "https://www.flipkart.com/product/p/itme?pid={id}"
+    delay_seconds: [4, 9]
+    # When a SKU has no Flipkart ID, search Flipkart by product name, and write
+    # the ID we found back into the SKUs tab (highlighted yellow for you to check).
+    search_if_missing: true
+    search_url: "https://www.flipkart.com/search?q={query}"
+    search_prefix: "Smartivity"
+    search_min_match: 0.6       # share of product-name words that must appear in the listing name
+    blocked_markers:
+      - "Are you a human?"
+      - "Flipkart Recaptcha"
+      - "Access Denied"
+    patterns:
+      ld_json: '<script[^>]*application/ld\+json[^>]*>([\s\S]*?)</script>'
+      price_block: '"ppd":\s*\{'       # followed by fsp (selling price), mrp
+      listing_block: '"pls":\s*\{'     # followed by sellerId, availabilityStatus
+      search_result: 'href="(/([a-z0-9-]+)/p/itm[0-9a-z]+\?pid=([A-Z0-9]{16}))'
+      title: '<title>([^<]*)'

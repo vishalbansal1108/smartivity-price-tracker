@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+# local test copy of the SKU list - the real list lives in the Google Sheet
+config/skus_local.csv

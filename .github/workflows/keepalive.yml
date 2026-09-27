@@ -1,0 +1,23 @@
+# GitHub switches off scheduled workflows in repositories with no activity for
+# 60 days. This makes a tiny commit on the 1st of every month to prevent that.
+name: Keep schedule alive
+
+on:
+  schedule:
+    - cron: "0 3 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          git config user.name "keepalive-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          date -u > .github/last-keepalive.txt
+          git add .github/last-keepalive.txt
+          git commit -m "keepalive" && git push
