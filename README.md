@@ -5,8 +5,27 @@ compares every platform with **Amazon.in** (the reference price), writes
 everything into a Google Sheet, and emails you when anything is cheaper than
 Amazon.in.
 
-**Phase 1 (this version):** Amazon.in + Flipkart.
-Phase 2 adds the other marketplaces; Phase 3 adds Blinkit / Instamart / Zepto / BB Now at the 3 pincodes.
+### Platforms
+
+| Platform | Tracked? | How |
+|---|---|---|
+| Amazon.in (reference price) | ✅ | product page per ASIN (buy-box price) |
+| Flipkart | ✅ | product page per FSN; FSN found by name search when missing |
+| Myntra | ✅ | Smartivity brand page (one request for all products) |
+| FirstCry | ✅ | Smartivity brand listing feed (a few requests for all products) |
+| Blinkit | ✅ at 560056, 560065, 110030 | Blinkit search for "smartivity" at each location |
+| Meesho, Nykaa, Ajio, JioMart, BigBasket / BB Now, Swiggy Instamart, Zepto | ❌ | these sites refuse automated access ("Access Denied" or bot challenges), even from a home connection. The tracker does not try to get around that. |
+| Tata CLiQ, Snapdeal | ❌ | no Smartivity products listed (Sep 2026) |
+
+The "not tracked" list is also shown on the Latest tab, and it lives in `config/platforms.yaml` (`not_tracked:`).
+Re-check it every few months: if a site opens up, it needs a new adapter.
+
+**Quick commerce and pincodes:** Blinkit stock differs per area. "N/A here" on the Latest tab means the
+product is not sold at that pincode right now. Pincode 560065's centre point is outside Blinkit's
+delivery zone, so the tracker uses a point inside Thindlu (same pincode). Coordinates are in `config/platforms.yaml`.
+
+**Blinkit IDs:** the "Blinkit Item ID(s)" numbers in the sheet are Blinkit's seller-side codes. The public
+website uses different numbers, so the tracker fills a new column, **Blinkit Product ID**, by name matching.
 
 ---
 
@@ -137,8 +156,9 @@ SKUs already in the tab are skipped.
 | **Alerts** | Every SKU/platform that is (ACTIVE) or was (RESOLVED) cheaper than Amazon.in, with both prices, the difference in ₹ and %, and links. |
 | **Run Log** | One line per platform per run, with OK / NOT_FOUND / BLOCKED / ERROR counts. |
 
-**Yellow cells in the SKUs tab:** when a SKU has no Flipkart ID, the robot searches Flipkart
-for "Smartivity + product name". It writes the ID it found into the SKUs tab in **yellow**.
+**Yellow cells in the SKUs tab:** when a SKU has no ID for Flipkart, Myntra, FirstCry or Blinkit,
+the robot matches it by product name (and checks the MRP is within 20%). It writes the ID it found
+into the SKUs tab in **yellow**. New columns such as "Myntra ID" and "Blinkit Product ID" are added automatically.
 Hover over the cell to see the listing it matched and open the link. If the match is right,
 remove the yellow colour. If it is wrong, type the correct FSN or clear the cell. You can find
 the FSN in any Flipkart product link after `pid=`.

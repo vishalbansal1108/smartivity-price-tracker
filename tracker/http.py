@@ -42,13 +42,17 @@ class PoliteSession:
 
     def get(self, url: str) -> str:
         """Return page HTML. Raises Blocked / NotFound / requests exceptions."""
+        return self.request("GET", url)
+
+    def request(self, method: str, url: str, headers: dict | None = None, data=None) -> str:
+        """Like get(), for any method, with extra headers / body."""
         last_error: Exception | None = None
         for attempt in range(self.retries + 1):
             if attempt:
                 time.sleep(self.backoff * (2 ** (attempt - 1)) + random.uniform(0, 2))
             self._wait_turn()
             try:
-                resp = self.session.get(url, timeout=self.timeout)
+                resp = self.session.request(method, url, headers=headers, data=data, timeout=self.timeout)
             except requests.RequestException as e:
                 last_error = e
                 continue
@@ -67,6 +71,8 @@ class PoliteSession:
                 raise NotFound(f"HTTP 404 for {url}")
             if resp.status_code == 403:
                 raise Blocked("HTTP 403 Forbidden (site refused automated access)")
+            if resp.status_code == 202 and not html.strip():
+                raise Blocked("HTTP 202 with empty page (bot challenge)")
             if resp.status_code in RETRY_STATUS:
                 last_error = Exception(f"HTTP {resp.status_code}")
                 continue

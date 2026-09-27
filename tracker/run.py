@@ -32,6 +32,11 @@ def load_config() -> dict:
 def run_platform(key: str, cfg: dict, defaults: dict, skus: list[Sku]) -> list[PriceResult]:
     adapter = REGISTRY[key](cfg, defaults)
     pincodes = defaults.get("pincodes", []) if cfg.get("per_pincode") else [None]
+    if hasattr(adapter, "run_all"):          # catalogue platforms: whole listing at once
+        results = adapter.run_all(skus, pincodes, log=lambda m: print(m, flush=True))
+        for r in results:
+            _log(cfg, r)
+        return results
     results = []
     for sku in skus:
         if sku.ids.get(key, "").lower() in NOT_LISTED:
@@ -130,6 +135,7 @@ def main(argv=None) -> int:
                        "id_column": c.get("id_column", ""),
                        "pincodes": defaults.get("pincodes", []) if c.get("per_pincode") else []}
                       for k, c in platforms.items() if c.get("enabled", True) and k in REGISTRY],
+        "not_tracked": config.get("not_tracked", []),
         "partial": bool(wanted or args.skus),
         "results": [r.to_dict() for r in results],
     }

@@ -246,6 +246,7 @@ function handleResults_(p) {
   const results = p.results || [];
   const platforms = p.platforms || [];
   PropertiesService.getScriptProperties().setProperty('PLATFORMS', JSON.stringify(platforms));
+  PropertiesService.getScriptProperties().setProperty('NOT_TRACKED', JSON.stringify(p.not_tracked || []));
 
   appendHistory_(p.run.id, results);
   writeDiscoveredIds_(results, platforms);
@@ -314,6 +315,17 @@ function writeDiscoveredIds_(results, platforms) {
   const sh = SpreadsheetApp.getActive().getSheetByName(TAB.SKUS);
   const data = sh.getDataRange().getDisplayValues();
   const head = data[0];
+  // New platforms bring their own ID column (e.g. "Myntra ID"): add it if missing
+  platforms.forEach(pl => {
+    if (pl.id_column && head.indexOf(pl.id_column) < 0 && found.some(r => r.platform === pl.key)) {
+      head.push(pl.id_column);
+      data.forEach((row, i) => { if (i > 0) row.push(''); });
+      const c = head.length;
+      sh.getRange(1, c).setValue(pl.id_column).setFontWeight('bold').setFontColor('#ffffff')
+        .setBackground(COLOR.HEADER).setWrap(true);
+      sh.getRange(2, c, Math.max(sh.getMaxRows() - 1, 1), 1).setNumberFormat('@');
+    }
+  });
   found.forEach(r => {
     const pl = platforms.find(x => x.key === r.platform);
     const col = pl ? head.indexOf(pl.id_column) : -1;
@@ -554,7 +566,7 @@ function buildLatest_(state, platforms, finished) {
           val = url ? '=HYPERLINK("' + url + '","OOS")' : 'OOS';
           font = '#777777';
         } else if (status === 'NOT_FOUND') {
-          val = 'Not found'; font = '#999999';
+          val = c.pin ? 'N/A here' : 'Not found'; font = '#999999';
         } else {
           val = status; bg = COLOR.GREY; font = '#444444';
         }
@@ -571,6 +583,12 @@ function buildLatest_(state, platforms, finished) {
   sh.getRange(2, 1).setValue('Red = cheaper than Amazon.in  |  Grey = fetch failed / blocked  |  ' +
     'Strikethrough or OOS = out of stock  |  — = no ID / not listed  |  Click a price to open the product. ' +
     'Hover a cell for seller, MRP and errors.').setFontColor('#555555');
+  const nt = JSON.parse(PropertiesService.getScriptProperties().getProperty('NOT_TRACKED') || '[]');
+  if (nt.length) {
+    sh.getRange(3, 1).setValue('Not tracked: ' + nt.map(x => x.name).join(', ') +
+      '  (hover for why)').setFontColor('#999999').setFontStyle('italic')
+      .setNote(nt.map(x => x.name + ': ' + x.reason).join('\n'));
+  }
   sh.getRange(4, 1, 1, width).setValues([head]);
   styleHeader_(sh, width, 4);
   if (vals.length) {

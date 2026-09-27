@@ -17,6 +17,8 @@ defaults:
   backoff_seconds: 5          # 5s, 10s, 20s ...
   delay_seconds: [3, 7]
   retry_blocked_after_seconds: 120   # BLOCKED items get ONE more try at the end of the run (0 = off)
+  # Quick-commerce prices are checked at each of these pincodes
+  pincodes: ["560056", "560065", "110030"]
   user_agents:
     - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
     - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
@@ -92,3 +94,60 @@ platforms:
       listing_block: '"pls":\s*\{'     # followed by sellerId, availabilityStatus
       search_result: 'href="(/([a-z0-9-]+)/p/itm[0-9a-z]+\?pid=([A-Z0-9]{16}))'
       title: '<title>([^<]*)'
+
+  myntra:
+    name: "Myntra"
+    enabled: true
+    id_column: "Myntra ID"          # added to the SKUs tab automatically
+    listing_url: "https://www.myntra.com/smartivity?p={page}"
+    product_url: "https://www.myntra.com/{id}"
+    search_min_match: 0.6
+    max_pages: 5
+    blocked_markers: ["Access Denied", "Site Maintenance"]
+    patterns:
+      data: 'window\.__myx\s*=\s*(\{.*?\})\s*</script>'
+
+  firstcry:
+    name: "FirstCry"
+    enabled: true
+    id_column: "FirstCry ID"
+    brand_id: "1003771"             # Smartivity's brand number on FirstCry
+    listing_url: "https://www.firstcry.com/svcs/SearchResult.svc/GetSearchResultProductsPaging?PageNo={page}&PageSize=20&SortExpression=Popularity&OnSale=0&SearchString=brand&SubCatId=&BrandId=&Price=&Age=&Color=&OptionalFilter=&OutOfStock=&Type1=&Type2=&Type3=&Type4=&Type5=&Type6=&Type7=&Type8=&Type9=&Type10=&Type11=&Type12=&Type13=&Type14=&Type15=&combo=&discount=&searchwithincat=&ProductidQstr=&searchrank=&pmonths=&cgen=&PriceQstr=&DiscountQstr=&sorting=&MasterBrand={brand_id}&Rating=&Offer=&skills=&material=&curatedcollections=&measurement=&gender=&exclude=&premium=&pcode=0&isclub=0&deliverytype=&authors=&booktype=&character=&collections=&format=&genre=&booklanguage=&publication=&skill="
+    product_url: "https://www.firstcry.com/smartivity/smartivity/{id}/product-detail"
+    search_min_match: 0.6
+    max_pages: 10
+    blocked_markers: ["Access Denied"]
+
+  # ---------------- quick commerce (checked at every pincode above) ----------------
+  blinkit:
+    name: "Blinkit"
+    enabled: true
+    per_pincode: true
+    # Blinkit's public product number. (The "Blinkit Item ID(s)" column in the
+    # sheet holds a different, seller-side number, so it is kept for reference only.)
+    id_column: "Blinkit Product ID"
+    search_url: "https://blinkit.com/v1/layout/search?q=smartivity&search_type=type_to_search"
+    product_url: "https://blinkit.com/prn/smartivity/prid/{id}"
+    search_min_match: 0.6
+    max_pages: 8
+    delay_seconds: [3, 6]
+    blocked_markers: ["Just a moment...", "Access Denied"]
+    locations:                      # centre of each pincode area (OpenStreetMap)
+      "560056": {lat: 12.9477, lon: 77.4970}   # Jnana Bharathi, Bengaluru
+      "560065": {lat: 13.0760, lon: 77.5850}   # Thindlu, Bengaluru (pincode centre point is not serviced)
+      "110030": {lat: 28.5160, lon: 77.1893}   # Mehrauli area, Delhi
+
+# Platforms checked and found to refuse automated access (403 "Access Denied",
+# Cloudflare or bot challenges) even from a home internet connection, Sep 2026.
+# They are listed on the Latest tab as "not tracked". Re-test with
+# test_platforms.py from time to time; if one opens up, it needs an adapter.
+not_tracked:
+  - {name: "Meesho",            reason: "403 Access Denied (Akamai bot protection)"}
+  - {name: "Nykaa",             reason: "403 Access Denied"}
+  - {name: "Ajio",              reason: "403 Access Denied"}
+  - {name: "JioMart",           reason: "Access Denied on its data feed; page needs a browser"}
+  - {name: "BigBasket / BB Now", reason: "403 Access Denied"}
+  - {name: "Swiggy Instamart",  reason: "bot challenge (HTTP 202) on every page"}
+  - {name: "Zepto",             reason: "bot challenge (HTTP 202) on every page"}
+  - {name: "Tata CLiQ",         reason: "no Smartivity products listed"}
+  - {name: "Snapdeal",          reason: "no Smartivity products listed"}

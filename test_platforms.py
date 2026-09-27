@@ -23,13 +23,23 @@ def main():
         if not cfg.get("enabled", True) or key not in REGISTRY:
             continue
         pool = [s for s in skus if (not wanted or s.sku == wanted)]
-        sku = next((s for s in pool if key in s.ids), None) or (pool[0] if cfg.get("search_if_missing") and pool else None)
+        can_search = cfg.get("search_if_missing") or hasattr(REGISTRY[key], "run_all")
+        sku = next((s for s in pool if key in s.ids), None) or (pool[0] if can_search and pool else None)
         print(f"\n=== {cfg['name']} ===")
         if not sku:
             print("  no SKU with an ID for this platform - skipped")
             continue
-        pin = defaults.get("pincodes", [None])[0] if cfg.get("per_pincode") else None
-        r = REGISTRY[key](cfg, defaults).run_one(sku, pin)
+        pin = defaults.get("pincodes", [None])[-1] if cfg.get("per_pincode") else None
+        adapter = REGISTRY[key](cfg, defaults)
+        if hasattr(adapter, "run_all"):         # catalogue platforms fetch their whole listing
+            got = adapter.run_all([sku], [pin], log=lambda m: print(m))
+            if not got:
+                print("  listing could not be read - see message above")
+                failures += 1
+                continue
+            r = got[0]
+        else:
+            r = adapter.run_one(sku, pin)
         for label, value in [("SKU", f"{r.sku} - {r.product_name}"), ("Platform ID", r.platform_id + (" (found by search)" if r.id_discovered else "")),
                              ("Pincode", r.pincode), ("URL", r.url), ("Listing", r.listing_title[:90]),
                              ("Price", r.price), ("MRP", r.mrp), ("Discount %", r.discount_pct),
