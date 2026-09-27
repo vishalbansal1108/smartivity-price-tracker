@@ -18,7 +18,7 @@ import yaml
 
 from . import sheet
 from .adapters import REGISTRY
-from .models import NO_ID, PriceResult, Sku, now_ist
+from .models import NO_ID, NOT_LISTED, PriceResult, Sku, now_ist
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config" / "platforms.yaml"
@@ -34,8 +34,10 @@ def run_platform(key: str, cfg: dict, defaults: dict, skus: list[Sku]) -> list[P
     pincodes = defaults.get("pincodes", []) if cfg.get("per_pincode") else [None]
     results = []
     for sku in skus:
+        if sku.ids.get(key, "").lower() in NOT_LISTED:
+            continue                      # marked "none": not sold on this platform
         if key not in sku.ids and not cfg.get("search_if_missing"):
-            continue                      # not listed on this platform
+            continue                      # no ID and this platform can't search by name
         for pin in pincodes:
             r = adapter.run_one(sku, pin)
             print(f"  [{cfg['name']}] {sku.sku} {pin or ''} -> {r.status} "

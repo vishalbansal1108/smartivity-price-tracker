@@ -44,6 +44,7 @@ class Adapter:
                 found = self.discover_id(sku)
                 if not found:
                     result.status, result.error = NOT_FOUND, "Not found by name search"
+                    result.id_search_failed = True
                     return result.finish()
                 pid, result.listing_title = found
                 result.platform_id, result.id_discovered = pid, True

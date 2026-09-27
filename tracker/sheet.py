@@ -35,6 +35,8 @@ def _rows_to_skus(rows: list[dict], platforms: dict) -> list[Sku]:
             raw = str(row.get(pcfg.get("id_column", ""), "") or "").strip()
             if raw:
                 ids[key] = raw.split(",")[0].strip()   # several IDs in one cell: use the first
+        if not ids.get("amazon_in") and not ids.get("flipkart") and not str(row.get("Product Name", "")).strip():
+            continue                                    # empty/junk row
         skus.append(Sku(sku=code, name=str(row.get("Product Name", "")).strip(),
                         mrp=parse_money(row.get("MRP (INR)")), ids=ids))
     return skus

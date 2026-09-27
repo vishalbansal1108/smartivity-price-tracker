@@ -89,23 +89,41 @@ Phase 2 adds the other marketplaces; Phase 3 adds Blinkit / Instamart / Zepto / 
    Click **Price check** on the left → **Run workflow** → **Run workflow**.
    After 2–3 minutes it shows a green tick ✅. Open your sheet: the **Latest** tab is filled in.
 
-From now on it runs by itself every 10 minutes (testing mode).
-
-### Part C: switch from "every 10 minutes" to "every 4 hours"
-
-In GitHub open `.github/workflows/price-check.yml` → pencil icon ✏ (Edit) and change:
-
-```yaml
-    - cron: "*/10 * * * *"
-    # - cron: "0 */4 * * *"
-```
-to
-```yaml
-    # - cron: "*/10 * * * *"
-    - cron: "0 */4 * * *"
-```
-Then click **Commit changes**. It will run at 05:30, 09:30, 13:30, 17:30, 21:30 and 01:30 IST.
+From now on it runs by itself **every 4 hours** (05:30, 09:30, 13:30, 17:30, 21:30, 01:30 IST).
 GitHub sometimes starts scheduled runs 5–30 minutes late. That is normal.
+To change the timing, edit the `cron:` line in `.github/workflows/price-check.yml` on GitHub (✏ icon).
+
+### Part C: the green "Check prices now" button
+
+The **Latest** tab has a green **▶ Check prices now** button (also in the menu: **Price Tracker → ▶ Check prices now**).
+It asks GitHub to run a price check immediately. Results appear in the sheet after about **15–20 minutes**
+for all SKUs. If a check is already running, it tells you instead of starting a second one.
+
+To make the button work, the sheet needs permission to start the robot. This is a one-time setup:
+
+1. On GitHub, click your **profile picture → Settings → Developer settings (at the very bottom)
+   → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. Token name: `sheet button`. Expiration: the longest option offered.
+   Repository access: **Only select repositories** → `smartivity-price-tracker`.
+3. **Permissions → Repository permissions → Actions → Read and write**.
+4. Click **Generate token**, then copy it. It starts with `github_pat_`.
+5. In the sheet: **Price Tracker → 3. Connect GitHub**. Type your repository as `yourname/smartivity-price-tracker`,
+   then paste the token. You should see "Connected".
+6. The first time you click the button, Google asks for one more permission (to contact GitHub). Allow it.
+
+The token can only start this robot; it can't read or change anything else. If the button stops working
+after the token expires, repeat these steps.
+
+On the phone app, image buttons don't work. Use the menu instead, or open the sheet in a browser.
+
+### Adding more SKUs
+
+Add rows to the **SKUs** tab using the same columns. To bulk-add from an Excel file (on a PC with Python):
+```
+.venv\Scripts\python -m pip install openpyxl
+.venv\Scripts\python import_skus.py "D:\path\to\file.xlsx" --upload
+```
+SKUs already in the tab are skipped.
 
 ---
 
@@ -124,6 +142,9 @@ for "Smartivity + product name". It writes the ID it found into the SKUs tab in 
 Hover over the cell to see the listing it matched and open the link. If the match is right,
 remove the yellow colour. If it is wrong, type the correct FSN or clear the cell. You can find
 the FSN in any Flipkart product link after `pid=`.
+
+**Grey "none" cells:** the search found nothing, so that platform is skipped for that SKU.
+You can also type `none` yourself for any platform where a SKU isn't sold. Clear the cell to search again.
 
 ### Emails you will get
 

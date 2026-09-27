@@ -14,6 +14,9 @@ BLOCKED = "BLOCKED"       # robot check, CAPTCHA, login wall or access denied
 ERROR = "ERROR"           # anything else (network, page layout changed, ...)
 NO_ID = "NO_ID"           # SKU has no ID for this platform and search is off
 
+# Values in an ID cell meaning "not sold on this platform - don't search"
+NOT_LISTED = {"none", "-", "na", "n/a", "not listed"}
+
 
 def now_ist() -> str:
     return datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
@@ -54,6 +57,7 @@ class PriceResult:
     error: str = ""
     listing_title: str = ""       # product title as shown on the platform
     id_discovered: bool = False   # True when the ID was found by name search
+    id_search_failed: bool = False  # True when a name search found nothing (sheet then writes "none")
     timestamp: str = field(default_factory=now_ist)
 
     def finish(self) -> "PriceResult":
