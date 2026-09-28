@@ -39,7 +39,6 @@ jobs:
     if: ${{ vars.HOME_PC_RUNNER == 'on' }}
     runs-on: [self-hosted, price-tracker]
     timeout-minutes: 90
-    steps:
     defaults:
       run:
         shell: powershell
