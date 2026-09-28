@@ -135,6 +135,27 @@ after the token expires, repeat these steps.
 
 On the phone app, image buttons don't work. Use the menu instead, or open the sheet in a browser.
 
+### Part D: run Amazon, Myntra and Blinkit from your PC (recommended)
+
+Amazon.in, Myntra and Blinkit block GitHub's cloud servers (Amazon blocks most requests,
+Myntra and Blinkit block all of them), but they work from a normal home or office connection.
+GitHub's free **self-hosted runner** lets the same schedule and button run those three on your PC:
+
+1. The runner program is already downloaded to `D:\actions-runner` (official, checksum-verified).
+2. GitHub → repository → **Settings → Actions → Runners → New self-hosted runner** → Windows.
+   Copy the token shown after `--token` in the "Configure" box. It is valid for 1 hour.
+3. In PowerShell:
+   ```
+   powershell -ExecutionPolicy Bypass -File "D:\Claude AI\price-tracker\setup_pc_runner.ps1" -Token PASTE_TOKEN_HERE
+   ```
+4. GitHub → **Settings → Secrets and variables → Actions → Variables → New repository variable**:
+   name `HOME_PC_RUNNER`, value `on`.
+
+From then on, Flipkart and FirstCry run in the cloud, and Amazon.in, Myntra and Blinkit run on your PC.
+The PC must be switched on and logged in. If it is off, those three wait and run when it's back.
+Until step 4 is done, everything runs in the cloud (with the blocking described above).
+Keep the repository **private** once a PC runner is connected: GitHub advises against self-hosted runners on public repositories.
+
 ### Adding more SKUs
 
 Add rows to the **SKUs** tab using the same columns. To bulk-add from an Excel file (on a PC with Python):

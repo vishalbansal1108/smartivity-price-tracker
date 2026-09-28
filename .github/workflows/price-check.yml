@@ -23,8 +23,10 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Fetch prices (Flipkart, FirstCry) and update the Google Sheet
-        run: python -m tracker.run --platforms flipkart,firstcry
+      # Until the home-PC runner is connected (repository variable HOME_PC_RUNNER = on),
+      # the cloud job also tries Amazon.in, Myntra and Blinkit (often blocked there).
+      - name: Fetch prices and update the Google Sheet
+        run: python -m tracker.run --platforms ${{ vars.HOME_PC_RUNNER == 'on' && 'flipkart,firstcry' || 'amazon_in,flipkart,firstcry,myntra,blinkit' }}
         env:
           SHEET_WEBAPP_URL: ${{ secrets.SHEET_WEBAPP_URL }}
           SHEET_TOKEN: ${{ secrets.SHEET_TOKEN }}
@@ -34,6 +36,7 @@ jobs:
   # office/home PC through GitHub's free "self-hosted runner" (see README).
   # If that PC is off, this job waits (up to 24 h) and runs when it is back.
   home-pc:
+    if: ${{ vars.HOME_PC_RUNNER == 'on' }}
     runs-on: [self-hosted, price-tracker]
     timeout-minutes: 90
     steps:
