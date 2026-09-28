@@ -57,6 +57,15 @@ class CatalogAdapter(Adapter):
                                 listing_mrp={i: l.mrp for i, l in union.items()}) if union else {}
 
         results = []
+        failed = [c for c in catalogs.values() if isinstance(c, Exception)]
+        if failed and len(failed) == len(catalogs):
+            # Record the failure even when no SKU has an ID yet, so the Run Log and
+            # the "platform needs attention" email see it. (Not shown on Latest.)
+            e = failed[0]
+            results.append(PriceResult(
+                sku="(listing)", product_name=f"{self.name} Smartivity listing", platform=self.key,
+                status=BLOCKED if isinstance(e, Blocked) else ERROR,
+                error=f"{type(e).__name__}: {e}").finish())
         for sku in skus:
             pid = (sku.ids.get(self.key) or "").strip()
             if pid.lower() in NOT_LISTED:

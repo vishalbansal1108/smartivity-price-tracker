@@ -12,9 +12,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check:
+  # Platforms that work from GitHub's cloud servers.
+  cloud:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -22,8 +23,31 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Fetch prices and update the Google Sheet
-        run: python -m tracker.run
+      - name: Fetch prices (Flipkart, FirstCry) and update the Google Sheet
+        run: python -m tracker.run --platforms flipkart,firstcry
+        env:
+          SHEET_WEBAPP_URL: ${{ secrets.SHEET_WEBAPP_URL }}
+          SHEET_TOKEN: ${{ secrets.SHEET_TOKEN }}
+          RUN_TRIGGER: ${{ github.event_name }}
+
+  # Platforms that block cloud servers (Amazon, Myntra, Blinkit) run on the
+  # office/home PC through GitHub's free "self-hosted runner" (see README).
+  # If that PC is off, this job waits (up to 24 h) and runs when it is back.
+  home-pc:
+    runs-on: [self-hosted, price-tracker]
+    timeout-minutes: 90
+    steps:
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install requirements (in the runner's own Python environment)
+        run: |
+          if (-not (Test-Path ..\..\pt-venv\Scripts\python.exe)) { python -m venv ..\..\pt-venv }
+          ..\..\pt-venv\Scripts\python.exe -m pip install -q -r requirements.txt
+      - name: Fetch prices (Amazon.in, Myntra, Blinkit) and update the Google Sheet
+        run: ..\..\pt-venv\Scripts\python.exe -m tracker.run --platforms amazon_in,myntra,blinkit
         env:
           SHEET_WEBAPP_URL: ${{ secrets.SHEET_WEBAPP_URL }}
           SHEET_TOKEN: ${{ secrets.SHEET_TOKEN }}
